@@ -20,6 +20,7 @@ export function isUniqueViolation(error: unknown): boolean {
 
 export function isRetryableDbError(error: unknown): boolean {
   const code = readCode(error);
+  // 교착 40P01, lock_timeout 55P03, serialization 실패 40001만 재시도함
   return code === '40P01' || code === '55P03' || code === '40001';
 }
 

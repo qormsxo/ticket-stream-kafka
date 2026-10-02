@@ -38,9 +38,8 @@ export interface RedlockOptions {
 }
 
 /**
- * Redis 공식 Redlock.
- * 다수결(quorum)로 잠그고, 해제 시 토큰이 같을 때만 지운다.
- * 시계 드리프트와 프로세스 정지에는 약하므로 좌석의 최종 정합성은 DB 행 잠금이 담당한다.
+ * 과반 Redis에 같은 토큰을 심어 잠그는 기능.
+ * 시계 오차에는 약하므로 좌석의 최종 판단은 DB 행 잠금이 담당함.
  */
 export class RedisRedlock {
   constructor(
@@ -61,6 +60,7 @@ export class RedisRedlock {
     try {
       return await task();
     } finally {
+      // 성공이든 실패든 여기서 잠금을 해제함
       await this.release(lock);
     }
   }
@@ -87,8 +87,7 @@ export class RedisRedlock {
         try {
           await client.eval(UNLOCK_SCRIPT, 1, lock.resource, lock.token);
         } catch {
-          // 소수 노드 장애는 쿼럼 잠금의 해제 실패로 취급하지 않는다.
-          // TTL이 지나면 남은 키가 사라진다.
+          // 소수 노드 실패는 무시함. 남은 키는 TTL이 지나면 사라짐
         }
       }),
     );
@@ -112,6 +111,7 @@ export class RedisRedlock {
     const elapsed = Date.now() - startedAt;
     const drift = Math.round(this.options.driftFactor * ttlMs) + 2;
     const validity = ttlMs - elapsed - drift;
+    // 과반을 얻어도 남은 유효 시간이 없으면 잠금으로 인정하지 않고 부분 키를 지움
     if (granted >= this.quorum && validity > 0) {
       return { resource, token };
     }

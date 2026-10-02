@@ -24,12 +24,15 @@ export class BookingIntakeService {
   async intake(event: DomainEvent<BookingRequestedPayload>): Promise<void> {
     const payload = event.payload;
 
+    // 원장과 다음 이벤트를 한 트랜잭션에 넣는 기능. 이 단계에서는 좌석 행을 잠그지 않음
     await this.transactions.run(async (manager) => {
+      // 같은 이벤트 재배달이면 여기서 종료함
       const claimed = await this.inbox.claim(manager, ConsumerGroups.BOOKING, event.eventId);
       if (!claimed) {
         return;
       }
 
+      // 같은 멱등 키의 예매가 있으면 행을 다시 만들지 않음
       const duplicated = await manager.findOne(BookingEntity, {
         where: { idempotencyKey: payload.idempotencyKey },
       });
@@ -43,6 +46,7 @@ export class BookingIntakeService {
       const eventOpen = show?.status === EventStatus.OPEN;
       const now = new Date();
 
+      // 공연이 닫혔거나 좌석이 없으면 거절만 남기고 선점으로 넘기지 않음
       if (!eventOpen || !seatMatches || !seat) {
         await this.insertBooking(manager, payload, seat?.priceAmount ?? 0, BookingStatus.REJECTED, 'EVENT_OR_SEAT_NOT_FOUND', now);
         await this.outbox.enqueue(manager, {
@@ -59,6 +63,7 @@ export class BookingIntakeService {
         return;
       }
 
+      // 좌석 가격을 예매에 복사하고, 선점 요청은 아웃박스에만 넣음
       await this.insertBooking(manager, payload, seat.priceAmount, BookingStatus.REQUESTED, null, now);
 
       await this.outbox.enqueue(manager, {

@@ -22,6 +22,7 @@ export class KafkaProducerService implements OnModuleInit, OnModuleDestroy {
     });
 
     this.producer = kafka.producer({
+      // 같은 키의 재전송이 브로커에서 중복 저장되지 않게 함
       idempotent: true,
       allowAutoTopicCreation: true,
     });
@@ -40,6 +41,7 @@ export class KafkaProducerService implements OnModuleInit, OnModuleDestroy {
   }
 
   async publish<T>(topic: string, event: DomainEvent<T>, key: string): Promise<void> {
+    // acks -1. key가 같으면 같은 파티션으로 가 순서를 유지함
     await this.producer.send({
       topic,
       acks: -1,

@@ -30,11 +30,13 @@ export class BookingAcceptanceService {
       pollUrl: `/api/v1/bookings/${bookingId}`,
     };
 
+    // 같은 Idempotency-Key면 먼저 저장된 접수 응답을 그대로 반환함
     const cached = await this.cache.getAccepted(input.idempotencyKey);
     if (cached) {
       return cached;
     }
 
+    // SET NX로 동시 요청 중 하나만 Kafka에 넣는 기능
     const claim = await this.cache.claimAccepted(input.idempotencyKey, accepted);
     if (claim === 'EXISTS') {
       const winner = await this.cache.getAccepted(input.idempotencyKey);
@@ -53,8 +55,10 @@ export class BookingAcceptanceService {
     });
 
     try {
+      // 메시지 키는 seatId. 같은 좌석 이벤트는 한 파티션으로 모임
       await this.producer.publish(KafkaTopics.BOOKING_REQUESTED, event, input.seatId);
     } catch (error) {
+      // 발행 실패 시 키를 지워 같은 키의 재시도를 허용함
       await this.cache.releaseAccepted(input.idempotencyKey);
       throw error;
     }

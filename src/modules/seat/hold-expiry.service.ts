@@ -61,6 +61,7 @@ export class HoldExpiryService implements OnModuleInit, OnModuleDestroy {
         continue;
       }
 
+      // 조회와 잠금 사이에 결제가 끝날 수 있어, 잠금 아래서 만료 여부를 다시 확인함
       const didRelease = await this.redlock.using(`lock:seat:${candidate.id}`, async () => {
         return this.transactions.run(async (manager) => {
           const seat = await manager.findOne(SeatEntity, {
@@ -86,6 +87,7 @@ export class HoldExpiryService implements OnModuleInit, OnModuleDestroy {
             return false;
           }
 
+          // 여기서 선점을 풀고 예매를 HOLD_EXPIRED로 수정함
           await applySeatSnapshot(manager, seat, decision.seat);
           await manager.update(
             BookingEntity,

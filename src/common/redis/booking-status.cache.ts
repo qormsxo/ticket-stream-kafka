@@ -24,6 +24,7 @@ export class BookingStatusCache {
     view: AcceptedBookingView,
   ): Promise<'CREATED' | 'EXISTS'> {
     try {
+      // NX로 먼저 도착한 요청만 키를 소유함. Redis가 죽으면 통과시키고 DB 유니크가 막음
       const result = await this.redis.primary.set(
         `idem:booking:${idempotencyKey}`,
         JSON.stringify(view),

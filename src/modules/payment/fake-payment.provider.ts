@@ -9,16 +9,14 @@ export interface FakePaymentOptions {
   failRate: number;
 }
 
-/**
- * 부하 테스트용 결제 대역. bookingId가 같으면 승인 여부도 같다.
- * 외부 PG를 호출하지 않으므로 비용은 0원이다.
- */
+// PG 없이 승인 결과를 만드는 기능. 같은 bookingId면 결과도 같음. 실제 청구는 없음
 export class FakePaymentProvider implements PaymentProvider {
   readonly name = 'fake';
   private readonly logger = new Logger(FakePaymentProvider.name);
 
   constructor(private readonly options: FakePaymentOptions) {}
 
+  // 외부 호출 없이 지연만 흉내 낸 뒤 승인 또는 거절을 반환함
   async charge(request: ChargeRequest): Promise<ChargeResult> {
     if (this.options.delayMs > 0) {
       await sleep(this.options.delayMs);
@@ -36,6 +34,7 @@ export class FakePaymentProvider implements PaymentProvider {
     this.logger.log(`fake void booking=${request.bookingId} ref=${request.providerRef}`);
   }
 
+  // success, fail, flaky 모드에 따라 승인 여부를 정함. flaky는 bookingId 해시로 고정함
   private approvedFor(bookingId: string): boolean {
     if (this.options.mode === 'success') {
       return true;

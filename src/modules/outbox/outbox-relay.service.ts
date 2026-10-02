@@ -43,6 +43,7 @@ export class OutboxRelayService implements OnModuleInit, OnModuleDestroy {
   }
 
   async publishPendingOnce(): Promise<number> {
+    // 폴링이 겹치면 같은 배치를 두 번 집어가지 않음
     if (this.running) {
       return 0;
     }
@@ -62,6 +63,7 @@ export class OutboxRelayService implements OnModuleInit, OnModuleDestroy {
           );
           published += 1;
         } catch (error) {
+          // 발행에 실패하면 PENDING으로 되돌려 다음 주기에 재시도함
           await this.dataSource.query(
             `UPDATE outbox_events SET status = 'PENDING', updated_at = now() WHERE id = $1`,
             [row.id],
@@ -77,6 +79,7 @@ export class OutboxRelayService implements OnModuleInit, OnModuleDestroy {
 
   private async claimBatch(): Promise<OutboxRow[]> {
     return this.dataSource.transaction(async (manager) => {
+      // SKIP LOCKED로 다른 릴레이가 집은 행은 건너뜀. 10회를 넘기면 FAILED로 수정함
       const rows: OutboxRow[] = await manager.query(
         `
         WITH picked AS (

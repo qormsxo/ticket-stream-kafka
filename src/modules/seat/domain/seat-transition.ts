@@ -15,6 +15,7 @@ export type TransitionResult =
   | { ok: false; reason: SeatRejectReason };
 
 export class SeatTransition {
+  // AVAILABLE일 때만 HELD로 바꾸고 선점 만료 시각을 심는 기능
   static hold(
     seat: SeatSnapshot | null,
     bookingId: string,
@@ -40,6 +41,7 @@ export class SeatTransition {
     };
   }
 
+  // 본인 선점이고 만료 전일 때만 SOLD로 수정함
   static confirm(seat: SeatSnapshot | null, bookingId: string, now: Date): TransitionResult {
     if (!seat) {
       return { ok: false, reason: 'NOT_FOUND' };
@@ -62,6 +64,7 @@ export class SeatTransition {
     };
   }
 
+  // 이미 SOLD인 좌석은 되돌리지 않음. 본인 HELD만 AVAILABLE로 수정함
   static release(seat: SeatSnapshot | null, bookingId: string): TransitionResult {
     if (!seat) {
       return { ok: false, reason: 'NOT_FOUND' };

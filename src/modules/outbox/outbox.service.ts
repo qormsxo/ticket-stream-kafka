@@ -14,6 +14,7 @@ export interface EnqueueOutboxInput<T> {
 @Injectable()
 export class OutboxService {
   async enqueue<T>(manager: EntityManager, input: EnqueueOutboxInput<T>): Promise<void> {
+    // Kafka를 여기서 호출하지 않음. 업무 트랜잭션이 커밋된 뒤에만 발행 대상이 됨
     const now = new Date();
     await manager.insert(OutboxEntity, {
       id: randomUUID(),

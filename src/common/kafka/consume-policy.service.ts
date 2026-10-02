@@ -31,11 +31,13 @@ export class KafkaConsumePolicy {
       for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
         try {
           await options.handler();
+          // 처리가 끝난 뒤에만 오프셋을 커밋함
           await commitKafkaOffset(options.context);
           return;
         } catch (error) {
           const message = errorMessage(error);
           if (attempt === maxAttempts) {
+            // 한도를 넘기면 DLQ로 옮기고 오프셋을 진행함. 파티션을 그 메시지에 멈추지 않음
             await this.publishDeadLetter(options, message);
             await commitKafkaOffset(options.context);
             this.logger.error(

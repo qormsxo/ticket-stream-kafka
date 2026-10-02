@@ -29,6 +29,7 @@ export class InboxService {
       });
       return true;
     } catch (error) {
+      // 유니크 충돌이면 이미 처리한 이벤트로 보고 false를 반환함
       if (isUniqueViolation(error)) {
         return false;
       }

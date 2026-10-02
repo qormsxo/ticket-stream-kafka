@@ -13,6 +13,7 @@ export class TransactionService {
   async run<T>(work: (manager: EntityManager) => Promise<T>): Promise<T> {
     try {
       return await this.dataSource.transaction(async (manager) => {
+        // 이 트랜잭션 안에서만 lock_timeout을 걸음. 대기가 길면 재시도함
         await manager.query(`SELECT set_config('lock_timeout', $1, true)`, [
           `${this.config.lockTimeoutMs}ms`,
         ]);

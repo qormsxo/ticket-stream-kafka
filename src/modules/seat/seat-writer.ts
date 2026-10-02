@@ -8,6 +8,7 @@ export async function applySeatSnapshot(
   current: { id: string; version: number },
   next: SeatSnapshot,
 ): Promise<void> {
+  // 읽은 version과 같을 때만 좌석을 수정함. 0건이면 다른 갱신과 겹친 것이라 재시도함
   const result = await manager.update(
     SeatEntity,
     { id: current.id, version: current.version },

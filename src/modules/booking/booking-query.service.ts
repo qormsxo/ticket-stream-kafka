@@ -15,6 +15,7 @@ export class BookingQueryService {
     const booking = await this.dataSource.getRepository(BookingEntity).findOne({
       where: { id: bookingId },
     });
+    // 원장이 생기면 DB를 우선함. 접수 직후 행이 없을 때만 Redis의 ACCEPTED를 봄
     if (booking) {
       return toBookingView(booking);
     }

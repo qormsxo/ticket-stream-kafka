@@ -34,6 +34,7 @@ export class CatalogService implements OnModuleInit {
   async seedDemo(): Promise<EventFixture> {
     const eventId = demoEventId();
     const existing = await this.events.findOne({ where: { id: eventId } });
+    // 고정 UUID라 재기동해도 같은 공연을 씀. 이미 있으면 좌석을 다시 만들지 않음
     if (!existing) {
       await this.events.insert({
         id: eventId,

@@ -32,6 +32,7 @@ export class SeatOccupancyService {
   async hold(event: DomainEvent<SeatHoldRequestedPayload>): Promise<void> {
     const { seatId, bookingId } = event.payload;
 
+    // Redlock을 얻은 뒤에서만 좌석 상태를 수정함
     await this.redlock.using(`lock:seat:${seatId}`, async () => {
       await this.transactions.run(async (manager) => {
         const claimed = await this.inbox.claim(manager, ConsumerGroups.SEAT, event.eventId);
@@ -39,6 +40,7 @@ export class SeatOccupancyService {
           return;
         }
 
+        // 좌석 행을 먼저 잠그고 예매 행을 잠금. 순서를 뒤집으면 교착 가능함
         const seat = await manager.findOne(SeatEntity, {
           where: { id: seatId },
           lock: { mode: 'pessimistic_write' },
@@ -63,11 +65,13 @@ export class SeatOccupancyService {
           new Date(),
           this.config.seatHoldTtlMs,
         );
+        // AVAILABLE이 아니면 좌석은 그대로 두고 예매만 REJECTED로 수정함
         if (!decision.ok) {
           await this.reject(manager, event, decision.reason);
           return;
         }
 
+        // 여기서 좌석을 HELD, 예매를 SEAT_HELD로 수정함
         await applySeatSnapshot(manager, seat, decision.seat);
         await manager.update(
           BookingEntity,

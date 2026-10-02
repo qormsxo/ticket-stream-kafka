@@ -12,6 +12,7 @@ export class BookingStatusClient implements OnModuleInit, OnModuleDestroy {
   constructor(@Inject(KAFKA_RPC_CLIENT) private readonly client: ClientKafka) {}
 
   async onModuleInit(): Promise<void> {
+    // 응답 토픽 구독은 connect보다 먼저 해야 request-response가 동작함
     this.client.subscribeToResponseOf(KafkaTopics.BOOKING_STATUS);
     for (let attempt = 1; attempt <= 10; attempt += 1) {
       try {

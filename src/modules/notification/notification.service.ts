@@ -41,6 +41,7 @@ export class NotificationService {
           createdAt: new Date(),
         });
       } catch (error) {
+        // 같은 예매, 같은 템플릿이 다시 오면 행을 추가하지 않음
         if (!isUniqueViolation(error)) {
           throw error;
         }

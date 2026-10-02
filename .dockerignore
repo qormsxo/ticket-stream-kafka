@@ -1,0 +1,7 @@
+node_modules
+dist
+coverage
+.git
+.env
+PROJECT_STUDY.md
+*.log

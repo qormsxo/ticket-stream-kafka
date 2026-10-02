@@ -1,0 +1,11 @@
+node_modules/
+dist/
+coverage/
+.env
+.env.local
+*.log
+.DS_Store
+
+# 로컬 학습 노트. 면접 대본이 공개 저장소에 섞이지 않도록 제외한다.
+# 포트폴리오에 포함하고 싶으면 이 줄을 지운 뒤 다시 추가하면 된다.
+PROJECT_STUDY.md
